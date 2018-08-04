@@ -37,6 +37,14 @@ def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     # Note that lstms expect a input of shape (num_batch_size, num_timesteps, feature_length).
 
     ##### Your code below (Lab 3)
+    # TODOs:
+    # improve lenet - res, inception nets
+    #   - final layer dense? or global_max_pool?
+    # bidirectional mlultilayer lstms
+    # Dropouts
+    # window_width, window_stride
+    # Optimizer, learning rate
+
     image_reshaped = Lambda(lambda x: K.expand_dims(x, axis=-1))(image_input)
     # image_reshaped = Reshape((image_height, image_width, 1))(image_input)
     # (image_height, image_width, 1)
@@ -48,14 +56,12 @@ def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     # (num_windows, image_height, window_width, 1)
 
     # Make a LeNet and get rid of the last two layers (softmax and dropout)
-    # TODO: improve lenet - res, inception nets
     convnet = lenet((image_height, window_width, 1), (num_classes,))
     convnet = KerasModel(inputs=convnet.inputs, outputs=convnet.layers[-2].output)
     convnet_outputs = TimeDistributed(convnet)(image_patches)
     # (num_windows, 128)
 
-    # bidirectional mlultilayer lstms
-    lstm_output = lstm_fn(128, return_sequences=True)(convnet_outputs)
+    lstm_output = Bidirectional(lstm_fn(128, return_sequences=True), merge_mode='concat')(convnet_outputs) # 'sum'
     # (num_windows, 128)
 
     softmax_output = Dense(num_classes, activation='softmax', name='softmax_output')(lstm_output)
