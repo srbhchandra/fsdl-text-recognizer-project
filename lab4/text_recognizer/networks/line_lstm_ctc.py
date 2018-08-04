@@ -15,11 +15,13 @@ from text_recognizer.networks.ctc import ctc_decode
 def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     image_height, image_width = input_shape
     output_length, num_classes = output_shape
-
+    print(f'window_width: {window_width}, window_stride: {window_stride}')
+    
     num_windows = int((image_width - window_width) / window_stride) + 1
     if num_windows < output_length:
         raise ValueError(f'Window width/stride need to generate at least {output_length} windows (currently {num_windows})')
-
+    print(f'num_windows: {num_windows}')
+        
     image_input = Input(shape=input_shape, name='image')
     y_true = Input(shape=(output_length,), name='y_true')
     input_length = Input(shape=(1,), name='input_length')
@@ -35,7 +37,8 @@ def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     # Note that lstms expect a input of shape (num_batch_size, num_timesteps, feature_length).
 
     ##### Your code below (Lab 3)
-    image_reshaped = Reshape((image_height, image_width, 1))(image_input)
+    image_reshaped = Lambda(lambda x: K.expand_dims(x, axis=-1))(image_input)
+    # image_reshaped = Reshape((image_height, image_width, 1))(image_input)
     # (image_height, image_width, 1)
 
     image_patches = Lambda(
@@ -45,11 +48,13 @@ def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     # (num_windows, image_height, window_width, 1)
 
     # Make a LeNet and get rid of the last two layers (softmax and dropout)
+    # TODO: improve lenet - res, inception nets
     convnet = lenet((image_height, window_width, 1), (num_classes,))
     convnet = KerasModel(inputs=convnet.inputs, outputs=convnet.layers[-2].output)
     convnet_outputs = TimeDistributed(convnet)(image_patches)
     # (num_windows, 128)
 
+    # bidirectional mlultilayer lstms
     lstm_output = lstm_fn(128, return_sequences=True)(convnet_outputs)
     # (num_windows, 128)
 
