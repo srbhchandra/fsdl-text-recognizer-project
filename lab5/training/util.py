@@ -22,7 +22,7 @@ def train_model(model: Model, dataset: Dataset, epochs: int, batch_size: int, gp
     callbacks = []
 
     if EARLY_STOPPING:
-        early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.01, patience=3, verbose=1, mode='auto')
+        early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.01, patience=5, verbose=1, mode='auto')
         callbacks.append(early_stopping)
 
     if GPU_UTIL_SAMPLER and gpu_ind is not None:

@@ -15,11 +15,13 @@ from text_recognizer.networks.ctc import ctc_decode
 def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     image_height, image_width = input_shape
     output_length, num_classes = output_shape
-
+    print(f'window_width: {window_width}, window_stride: {window_stride}')
+    print(f'num_classes: {num_classes}')
     num_windows = int((image_width - window_width) / window_stride) + 1
     if num_windows < output_length:
         raise ValueError(f'Window width/stride need to generate at least {output_length} windows (currently {num_windows})')
-
+    print(f'num_windows: {num_windows}')
+        
     image_input = Input(shape=input_shape, name='image')
     y_true = Input(shape=(output_length,), name='y_true')
     input_length = Input(shape=(1,), name='input_length')
@@ -35,7 +37,16 @@ def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     # Note that lstms expect a input of shape (num_batch_size, num_timesteps, feature_length).
 
     ##### Your code below (Lab 3)
-    image_reshaped = Reshape((image_height, image_width, 1))(image_input)
+    # TODOs:
+    # improve lenet - res, inception nets
+    #   - final layer dense? or global_max_pool?
+    # bidirectional mlultilayer lstms
+    # Dropouts
+    # window_width, window_stride
+    # Optimizer, learning rate
+
+    image_reshaped = Lambda(lambda x: K.expand_dims(x, axis=-1))(image_input)
+    # image_reshaped = Reshape((image_height, image_width, 1))(image_input)
     # (image_height, image_width, 1)
 
     image_patches = Lambda(
@@ -44,16 +55,17 @@ def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     )(image_reshaped)
     # (num_windows, image_height, window_width, 1)
 
-    # Make a LeNet and get rid of the last two layers (softmax and dropout)
     convnet = lenet((image_height, window_width, 1), (num_classes,))
-    convnet = KerasModel(inputs=convnet.inputs, outputs=convnet.layers[-2].output)
     convnet_outputs = TimeDistributed(convnet)(image_patches)
-    # (num_windows, 128)
+    # (num_windows, 256)
+    convnet_outputs_dr = Dropout(0.4, noise_shape=(K.shape(convnet_outputs)[0], 1, 256), name='dropout1')(convnet_outputs)
+    
+    lstm_output = Bidirectional(lstm_fn(128, return_sequences=True), merge_mode='concat')(convnet_outputs_dr) # 'sum'
+    # (num_windows, 256)
+    # lstm_output = Bidirectional(lstm_fn(64, return_sequences=True), merge_mode='concat')(lstm_output) # 'sum'
 
-    lstm_output = lstm_fn(128, return_sequences=True)(convnet_outputs)
-    # (num_windows, 128)
-
-    softmax_output = Dense(num_classes, activation='softmax', name='softmax_output')(lstm_output)
+    lstm_output_dr = Dropout(0.4, noise_shape=(K.shape(convnet_outputs)[0], 1, 256), name='dropout2')(lstm_output)
+    softmax_output = Dense(num_classes, activation='softmax', name='softmax_output')(lstm_output_dr)
     # (num_windows, num_classes)
     ##### Your code above (Lab 3)
 

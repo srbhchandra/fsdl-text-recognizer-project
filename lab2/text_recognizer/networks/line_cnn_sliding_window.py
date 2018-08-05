@@ -50,7 +50,10 @@ def line_cnn_sliding_window(
     # and watch out that width is at least 2 (else we will only be able to predict on the first half of the line)
 
     ##### Your code below (Lab 2)
-
+    flat_conv_outputs = Flatten()(convnet_outputs)
+    flat_outputs = Dense(output_length * num_classes, activation='relu')(flat_conv_outputs)
+    outputs = Reshape((output_length, num_classes))(flat_outputs)
+    softmax_output = Activation('softmax')(outputs)
     ##### Your code above (Lab 2)
 
     model = KerasModel(inputs=image_input, outputs=softmax_output)

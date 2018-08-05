@@ -4,7 +4,7 @@ import pathlib
 from boltons.cacheutils import cachedproperty
 import numpy as np
 from tensorflow.keras.models import Model as KerasModel
-from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.optimizers import RMSprop, Adam
 
 from text_recognizer.datasets.base import Dataset
 from text_recognizer.datasets.sequence import DatasetSequence
@@ -60,7 +60,7 @@ class Model:
         return 'categorical_crossentropy'
 
     def optimizer(self):
-        return RMSprop()
+        return Adam(lr=0.001)  # RMSprop()
 
     def metrics(self):
         return ['accuracy']

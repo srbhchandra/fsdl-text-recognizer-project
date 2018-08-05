@@ -61,9 +61,9 @@ def line_lstm_ctc(input_shape, output_shape, window_width=28, window_stride=14):
     convnet_outputs = TimeDistributed(convnet)(image_patches)
     # (num_windows, 128)
 
-    lstm_output = Bidirectional(lstm_fn(128, return_sequences=True), merge_mode='concat')(convnet_outputs) # 'sum'
+    lstm_output = Bidirectional(lstm_fn(64, return_sequences=True), merge_mode='concat')(convnet_outputs) # 'sum'
     # (num_windows, 128)
-
+    lstm_output = Dropout(0.2)(lstm_output)
     softmax_output = Dense(num_classes, activation='softmax', name='softmax_output')(lstm_output)
     # (num_windows, num_classes)
     ##### Your code above (Lab 3)
